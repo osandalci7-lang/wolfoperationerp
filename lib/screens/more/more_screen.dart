@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/constants.dart';
 import '../employees/employees_screen.dart';
 import '../safety/safety_screen.dart';
 import '../ncr/ncr_screen.dart';
@@ -12,20 +13,24 @@ class MoreScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Web sidebar'daki tüm modüller
     final items = [
-      _MenuItem(icon: Icons.people, label: 'Employees', color: Colors.purple, screen: const EmployeesScreen()),
-      _MenuItem(icon: Icons.shield, label: 'Safety', color: Colors.red, screen: const SafetyScreen()),
-      _MenuItem(icon: Icons.warning_amber, label: 'NCR', color: Colors.orange, screen: const NcrScreen()),
-      _MenuItem(icon: Icons.business, label: 'Vendors', color: Colors.teal, screen: const VendorsScreen()),
-      _MenuItem(icon: Icons.calendar_month, label: 'Planning', color: const Color(0xFF1a73e8), screen: const PlanningScreen()),
-      _MenuItem(icon: Icons.verified, label: 'Certificates', color: Colors.green, screen: const CertificatesScreen()),
-      _MenuItem(icon: Icons.attach_money, label: 'Financial', color: Colors.amber, screen: const FinancialScreen()),
-      _MenuItem(icon: Icons.request_quote, label: 'Quotes', color: Colors.indigo, screen: null),
-      _MenuItem(icon: Icons.settings, label: 'Settings', color: Colors.grey, screen: null),
+      _MenuItem(icon: Icons.people, label: 'Employees', color: AppColors.msPurple, screen: const EmployeesScreen()),
+      _MenuItem(icon: Icons.shield, label: 'Safety', color: AppColors.msRed, screen: const SafetyScreen()),
+      _MenuItem(icon: Icons.report_problem, label: 'NCR', color: AppColors.msOrange, screen: const NcrScreen()),
+      _MenuItem(icon: Icons.business, label: 'Vendors', color: AppColors.msTeal, screen: const VendorsScreen()),
+      _MenuItem(icon: Icons.calendar_month, label: 'Planning', color: AppColors.msBlue, screen: const PlanningScreen()),
+      _MenuItem(icon: Icons.verified, label: 'Certificates', color: AppColors.msGreen, screen: const CertificatesScreen()),
+      _MenuItem(icon: Icons.attach_money, label: 'Financial', color: const Color(0xFFd29922), screen: const FinancialScreen()),
+      _MenuItem(icon: Icons.request_quote, label: 'Quotes', color: const Color(0xFF6366f1), screen: null),
+      _MenuItem(icon: Icons.badge, label: 'Visitors', color: AppColors.msTeal, screen: null),
+      _MenuItem(icon: Icons.group, label: 'Customers', color: AppColors.msBlue, screen: null),
+      _MenuItem(icon: Icons.directions_boat, label: 'Ships', color: AppColors.navyDark, screen: null),
+      _MenuItem(icon: Icons.settings, label: 'Settings', color: AppColors.textSecondary, screen: null),
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0d1117),
+      backgroundColor: AppColors.bgDark,
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: GridView.builder(
@@ -43,18 +48,15 @@ class MoreScreen extends StatelessWidget {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => item.screen!));
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${item.label} - Coming soon'),
-                      backgroundColor: const Color(0xFF161b22),
-                    ),
+                    SnackBar(content: Text('${item.label} - Coming soon'), backgroundColor: AppColors.bgCard),
                   );
                 }
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF161b22),
+                  color: AppColors.bgCard,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  border: Border.all(color: AppColors.border.withOpacity(0.5)),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -69,7 +71,7 @@ class MoreScreen extends StatelessWidget {
                       child: Icon(item.icon, color: item.color, size: 26),
                     ),
                     const SizedBox(height: 8),
-                    Text(item.label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                    Text(item.label, style: const TextStyle(color: AppColors.textPrimary, fontSize: 12)),
                   ],
                 ),
               ),
@@ -87,10 +89,5 @@ class _MenuItem {
   final Color color;
   final Widget? screen;
 
-  const _MenuItem({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.screen,
-  });
+  const _MenuItem({required this.icon, required this.label, required this.color, required this.screen});
 }

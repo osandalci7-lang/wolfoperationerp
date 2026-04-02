@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants.dart';
 import '../../services/auth_service.dart';
 import '../../services/api_service.dart';
-
-double _toDouble(dynamic v) {
-  if (v == null) return 0.0;
-  if (v is num) return v.toDouble();
-  return double.tryParse(v.toString()) ?? 0.0;
-}
+import '../../widgets/common.dart';
 
 class VendorsScreen extends StatefulWidget {
   const VendorsScreen({super.key});
@@ -43,102 +39,56 @@ class _VendorsScreenState extends State<VendorsScreen> {
     final q = _searchQuery.toLowerCase();
     return _vendors.where((v) =>
       (v['name'] ?? '').toString().toLowerCase().contains(q) ||
-      (v['contact_person'] ?? '').toString().toLowerCase().contains(q) ||
-      (v['country'] ?? '').toString().toLowerCase().contains(q)
+      (v['contact_person'] ?? '').toString().toLowerCase().contains(q)
     ).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0d1117),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF161b22),
-        title: const Text('Vendors', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      backgroundColor: AppColors.bgDark,
+      appBar: wolfAppBar(title: 'Vendors', showBack: true),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Search vendors...',
-                hintStyle: const TextStyle(color: Colors.grey),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                filled: true,
-                fillColor: const Color(0xFF161b22),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              onChanged: (v) => setState(() => _searchQuery = v),
-            ),
-          ),
+          AppSearchBar(hint: 'Search vendors...', onChanged: (v) => setState(() => _searchQuery = v)),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF1a73e8)))
+                ? const LoadingState()
                 : RefreshIndicator(
                     onRefresh: _load,
                     child: ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: _filtered.length,
                       itemBuilder: (context, index) {
-                        final vendor = _filtered[index];
+                        final v = _filtered[index];
                         return GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => VendorDetailScreen(
-                                vendorId: vendor['id'],
-                                vendorName: vendor['name'] ?? '',
-                              ),
-                            ),
-                          ),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(
+                            builder: (_) => VendorDetailScreen(vendorId: v['id'], vendorName: v['name'] ?? ''),
+                          )),
                           child: Container(
                             margin: const EdgeInsets.only(bottom: 10),
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF161b22),
+                              color: AppColors.bgCard,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white.withOpacity(0.05)),
+                              border: Border.all(color: AppColors.border.withOpacity(0.5)),
                             ),
                             child: Row(
                               children: [
                                 Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF1a73e8).withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: const Icon(Icons.business, color: Color(0xFF1a73e8)),
+                                  width: 44, height: 44,
+                                  decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+                                  child: const Icon(Icons.business, color: AppColors.primary),
                                 ),
                                 const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(vendor['name'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
-                                      const SizedBox(height: 2),
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.location_on, color: Colors.grey, size: 14),
-                                          const SizedBox(width: 4),
-                                          Text(vendor['country'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                                          const SizedBox(width: 12),
-                                          const Icon(Icons.monetization_on, color: Colors.grey, size: 14),
-                                          const SizedBox(width: 4),
-                                          Text(vendor['currency'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                                        ],
-                                      ),
-                                      Text(vendor['contact_person'] ?? '', style: const TextStyle(color: Color(0xFF1a73e8), fontSize: 12)),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(Icons.chevron_right, color: Colors.grey),
+                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text(v['name'] ?? '', style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
+                                  if (v['contact_person'] != null)
+                                    Text(v['contact_person'], style: const TextStyle(color: AppColors.primary, fontSize: 12)),
+                                  if (v['email'] != null)
+                                    Text(v['email'], style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                                ])),
+                                const Icon(Icons.chevron_right, color: AppColors.textSecondary),
                               ],
                             ),
                           ),
@@ -156,22 +106,14 @@ class _VendorsScreenState extends State<VendorsScreen> {
 class VendorDetailScreen extends StatefulWidget {
   final int vendorId;
   final String vendorName;
-
-  const VendorDetailScreen({
-    super.key,
-    required this.vendorId,
-    required this.vendorName,
-  });
+  const VendorDetailScreen({super.key, required this.vendorId, required this.vendorName});
 
   @override
   State<VendorDetailScreen> createState() => _VendorDetailScreenState();
 }
 
-class _VendorDetailScreenState extends State<VendorDetailScreen>
-    with SingleTickerProviderStateMixin {
+class _VendorDetailScreenState extends State<VendorDetailScreen> with SingleTickerProviderStateMixin {
   Map<String, dynamic>? _vendor;
-  List<dynamic> _purchaseOrders = [];
-  List<dynamic> _invoices = [];
   bool _isLoading = true;
   late TabController _tabController;
 
@@ -179,7 +121,7 @@ class _VendorDetailScreenState extends State<VendorDetailScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadAll();
+    _load();
   }
 
   @override
@@ -188,172 +130,102 @@ class _VendorDetailScreenState extends State<VendorDetailScreen>
     super.dispose();
   }
 
-  Future<void> _loadAll() async {
+  Future<void> _load() async {
     final token = context.read<AuthService>().token!;
-    final results = await Future.wait([
-      ApiService.get('/vendors/${widget.vendorId}', token),
-      ApiService.get('/purchase-orders?vendor_id=${widget.vendorId}', token),
-    ]);
+    final data = await ApiService.get('/vendors/${widget.vendorId}', token);
     if (mounted) {
       setState(() {
-        _vendor = results[0]['data'];
-        _purchaseOrders = results[1]['data'] ?? [];
-        _invoices = (_vendor?['invoices'] as List?) ?? [];
+        _vendor = data['data'];
         _isLoading = false;
       });
     }
   }
 
-  Widget _infoRow(String label, String? value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 120, child: Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13))),
-          Expanded(child: Text(value ?? '-', style: const TextStyle(color: Colors.white, fontSize: 13))),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0d1117),
+      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF161b22),
-        title: Text(widget.vendorName, style: const TextStyle(color: Colors.white, fontSize: 16)),
+        backgroundColor: AppColors.bgCard,
         iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(widget.vendorName, style: const TextStyle(color: Colors.white, fontSize: 16)),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: const Color(0xFF1a73e8),
-          labelColor: const Color(0xFF1a73e8),
-          unselectedLabelColor: Colors.grey,
-          tabs: const [
-            Tab(text: 'Info'),
-            Tab(text: 'Purchase Orders'),
-            Tab(text: 'Invoices'),
-          ],
+          indicatorColor: AppColors.primary,
+          labelColor: AppColors.primary,
+          unselectedLabelColor: AppColors.textSecondary,
+          tabs: const [Tab(text: 'Info'), Tab(text: 'Purchase Orders'), Tab(text: 'Invoices')],
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF1a73e8)))
+          ? const LoadingState()
           : TabBarView(
               controller: _tabController,
               children: [
-                // Info tab
+                // Info
                 SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
                   child: Container(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF161b22),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        _infoRow('Name', _vendor?['name']),
-                        const Divider(color: Colors.white12),
-                        _infoRow('Contact', _vendor?['contact_person']),
-                        const Divider(color: Colors.white12),
-                        _infoRow('Email', _vendor?['email']),
-                        const Divider(color: Colors.white12),
-                        _infoRow('Phone', _vendor?['phone']),
-                        const Divider(color: Colors.white12),
-                        _infoRow('Country', _vendor?['country']),
-                        const Divider(color: Colors.white12),
-                        _infoRow('Currency', _vendor?['currency']),
-                        const Divider(color: Colors.white12),
-                        _infoRow('Address', _vendor?['address']),
-                        const Divider(color: Colors.white12),
-                        _infoRow('Tax Number', _vendor?['tax_number']),
-                      ],
-                    ),
+                    decoration: BoxDecoration(color: AppColors.bgCard, borderRadius: BorderRadius.circular(12)),
+                    child: Column(children: [
+                      InfoRow(label: 'Name', value: _vendor?['name']),
+                      const Divider(color: AppColors.border, height: 1),
+                      InfoRow(label: 'Contact', value: _vendor?['contact_person']),
+                      const Divider(color: AppColors.border, height: 1),
+                      InfoRow(label: 'Email', value: _vendor?['email']),
+                      const Divider(color: AppColors.border, height: 1),
+                      InfoRow(label: 'Phone', value: _vendor?['phone']),
+                      const Divider(color: AppColors.border, height: 1),
+                      InfoRow(label: 'Country', value: _vendor?['country']),
+                      const Divider(color: AppColors.border, height: 1),
+                      InfoRow(label: 'Currency', value: _vendor?['currency']),
+                      const Divider(color: AppColors.border, height: 1),
+                      InfoRow(label: 'Address', value: _vendor?['address']),
+                      const Divider(color: AppColors.border, height: 1),
+                      InfoRow(label: 'Tax Number', value: _vendor?['tax_number']),
+                    ]),
                   ),
                 ),
-                // Purchase Orders tab
-                _purchaseOrders.isEmpty
-                    ? const Center(child: Text('No purchase orders', style: TextStyle(color: Colors.grey)))
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _purchaseOrders.length,
-                        itemBuilder: (context, index) {
-                          final po = _purchaseOrders[index];
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF161b22),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.receipt_long, color: Color(0xFF1a73e8), size: 24),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(po['po_number'] ?? po['title'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                                      Text(po['date'] ?? po['created_at'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                                    ],
-                                  ),
-                                ),
-                                Text(
-                                  '${_vendor?['currency'] ?? '\$'}${_toDouble(po['total']).toStringAsFixed(2)}',
-                                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                // Invoices tab
-                _invoices.isEmpty
-                    ? const Center(child: Text('No invoices', style: TextStyle(color: Colors.grey)))
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _invoices.length,
-                        itemBuilder: (context, index) {
-                          final inv = _invoices[index];
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF161b22),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.description, color: Colors.green, size: 24),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(inv['invoice_number'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                                      Text(inv['date'] ?? inv['created_at'] ?? '', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                                    ],
-                                  ),
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      '${_vendor?['currency'] ?? '\$'}${_toDouble(inv['amount']).toStringAsFixed(2)}',
-                                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                                    ),
-                                    Text(inv['status'] ?? '', style: TextStyle(color: inv['status']?.toLowerCase() == 'paid' ? Colors.green : Colors.orange, fontSize: 11)),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
+                // POs
+                _buildList(_vendor?['purchase_orders'] ?? [], isPo: true),
+                // Invoices
+                _buildList(_vendor?['invoices'] ?? [], isPo: false),
               ],
             ),
+    );
+  }
+
+  Widget _buildList(List<dynamic> items, {required bool isPo}) {
+    if (items.isEmpty) return EmptyState(icon: isPo ? Icons.receipt_long : Icons.description, message: isPo ? 'No purchase orders' : 'No invoices');
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: AppColors.bgCard, borderRadius: BorderRadius.circular(10)),
+          child: Row(
+            children: [
+              Icon(isPo ? Icons.receipt_long : Icons.description, color: isPo ? AppColors.primary : AppColors.msGreen, size: 24),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(item['po_number'] ?? item['invoice_number'] ?? '#${item['id']}',
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+                Text(item['description'] ?? item['notes'] ?? '', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ])),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text('\u20AC${toDouble(item['total_amount'] ?? item['amount'] ?? item['total']).toStringAsFixed(2)}',
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
+                if (item['status'] != null)
+                  StatusBadge.fromStatus(item['status']),
+              ]),
+            ],
+          ),
+        );
+      },
     );
   }
 }

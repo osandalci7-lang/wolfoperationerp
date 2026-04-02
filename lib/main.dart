@@ -11,7 +11,7 @@ import 'screens/vendors/vendors_screen.dart';
 import 'screens/planning/planning_screen.dart';
 import 'screens/certificates/certificates_screen.dart';
 import 'screens/financial/financial_screen.dart';
-import 'screens/more/more_screen.dart';
+import 'core/constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,9 +57,10 @@ class WolfOperationApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1a73e8),
-          brightness: Brightness.light,
+          seedColor: AppColors.primary,
+          brightness: Brightness.dark,
         ),
+        scaffoldBackgroundColor: AppColors.bgDark,
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),

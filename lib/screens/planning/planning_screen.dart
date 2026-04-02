@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants.dart';
 import '../../services/auth_service.dart';
 import '../../services/api_service.dart';
-
-double _toDouble(dynamic v) {
-  if (v == null) return 0.0;
-  if (v is num) return v.toDouble();
-  return double.tryParse(v.toString()) ?? 0.0;
-}
+import '../../widgets/common.dart';
 
 class PlanningScreen extends StatefulWidget {
   const PlanningScreen({super.key});
@@ -17,9 +13,8 @@ class PlanningScreen extends StatefulWidget {
 }
 
 class _PlanningScreenState extends State<PlanningScreen> {
-  List<dynamic> _items = [];
+  List<dynamic> _entries = [];
   bool _isLoading = true;
-  String _filter = 'all'; // all, week, month
 
   @override
   void initState() {
@@ -32,53 +27,36 @@ class _PlanningScreenState extends State<PlanningScreen> {
     final data = await ApiService.get('/planning', token);
     if (mounted) {
       setState(() {
-        _items = data['data'] ?? [];
+        _entries = data['data'] ?? [];
         _isLoading = false;
       });
     }
   }
 
-  List<dynamic> get _filtered {
-    if (_filter == 'all') return _items;
-    final now = DateTime.now();
-    return _items.where((item) {
-      final startStr = item['start_date']?.toString() ?? '';
-      final endStr = item['end_date']?.toString() ?? '';
-      DateTime? start, end;
-      try { start = DateTime.parse(startStr); } catch (_) {}
-      try { end = DateTime.parse(endStr); } catch (_) {}
-
-      if (_filter == 'week') {
-        final weekEnd = now.add(const Duration(days: 7));
-        return (start != null && start.isBefore(weekEnd)) && (end == null || end.isAfter(now));
-      } else {
-        final monthEnd = DateTime(now.year, now.month + 1, 0);
-        return (start != null && start.isBefore(monthEnd)) && (end == null || end.isAfter(now));
-      }
-    }).toList();
+  // Web'deki status renkleri
+  Color _statusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'planned':
+        return const Color(0xFFFFD700);
+      case 'active':
+      case 'in_progress':
+        return const Color(0xFFFFA500);
+      case 'completed':
+        return const Color(0xFF6B7280);
+      case 'cancelled':
+        return const Color(0xFFE5E7EB);
+      default:
+        return AppColors.textSecondary;
+    }
   }
 
   Map<String, List<dynamic>> get _grouped {
     final map = <String, List<dynamic>>{};
-    for (final item in _filtered) {
-      final loc = item['location']?.toString() ?? 'Other';
-      map.putIfAbsent(loc, () => []).add(item);
+    for (final e in _entries) {
+      final loc = e['location_name']?.toString() ?? 'Other';
+      map.putIfAbsent(loc, () => []).add(e);
     }
     return map;
-  }
-
-  Color _statusColor(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'active':
-      case 'in progress':
-        return Colors.green;
-      case 'planned':
-        return const Color(0xFF1a73e8);
-      case 'completed':
-        return Colors.grey;
-      default:
-        return Colors.grey;
-    }
   }
 
   @override
@@ -86,177 +64,98 @@ class _PlanningScreenState extends State<PlanningScreen> {
     final grouped = _grouped;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0d1117),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF161b22),
-        title: const Text('Planning', style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      backgroundColor: AppColors.bgDark,
+      appBar: wolfAppBar(title: 'Planning', showBack: true),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF1a73e8)))
+          ? const LoadingState()
           : RefreshIndicator(
               onRefresh: _load,
-              child: Column(
-                children: [
-                  // Filter chips
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        _FilterChip(label: 'All', isActive: _filter == 'all', onTap: () => setState(() => _filter = 'all')),
-                        const SizedBox(width: 8),
-                        _FilterChip(label: 'This Week', isActive: _filter == 'week', onTap: () => setState(() => _filter = 'week')),
-                        const SizedBox(width: 8),
-                        _FilterChip(label: 'This Month', isActive: _filter == 'month', onTap: () => setState(() => _filter = 'month')),
-                      ],
-                    ),
-                  ),
-                  // Gantt-style list grouped by location
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      children: grouped.entries.map((entry) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: grouped.entries.map((entry) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Location header
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.location_on, color: Color(0xFF1a73e8), size: 16),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    entry.key,
-                                    style: const TextStyle(color: Color(0xFF1a73e8), fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1),
-                                  ),
-                                ],
+                            Container(
+                              width: 12, height: 12,
+                              decoration: BoxDecoration(
+                                color: _parseColor(entry.value.first['location_color']),
+                                shape: BoxShape.circle,
                               ),
                             ),
-                            ...entry.value.map((item) => _PlanningCard(item: item, statusColor: _statusColor(item['status']))),
-                            const SizedBox(height: 8),
+                            const SizedBox(width: 8),
+                            Text(entry.key, style: const TextStyle(color: AppColors.primary, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                           ],
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-  const _FilterChip({required this.label, required this.isActive, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF1a73e8) : const Color(0xFF161b22),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(label, style: TextStyle(color: isActive ? Colors.white : Colors.grey, fontSize: 13)),
-      ),
-    );
-  }
-}
-
-class _PlanningCard extends StatelessWidget {
-  final Map<String, dynamic> item;
-  final Color statusColor;
-  const _PlanningCard({required this.item, required this.statusColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF161b22),
-        borderRadius: BorderRadius.circular(10),
-        border: Border(left: BorderSide(color: statusColor, width: 4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  item['project_title'] ?? '',
-                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(item['status'] ?? '', style: TextStyle(color: statusColor, fontSize: 11)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          if (item['ship_name'] != null)
-            Row(
-              children: [
-                const Icon(Icons.directions_boat, color: Colors.grey, size: 14),
-                const SizedBox(width: 4),
-                Text(item['ship_name'], style: const TextStyle(color: Colors.grey, fontSize: 12)),
-              ],
-            ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Icon(Icons.calendar_today, color: Colors.grey, size: 14),
-              const SizedBox(width: 4),
-              Text(
-                '${item['start_date'] ?? ''} \u2192 ${item['end_date'] ?? ''}',
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          // Gantt bar
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: Container(
-                  height: 8,
-                  width: constraints.maxWidth,
-                  color: Colors.white.withOpacity(0.05),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: _calculateProgress(item['start_date'], item['end_date']),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: statusColor,
-                        borderRadius: BorderRadius.circular(3),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
+                      ...entry.value.map((e) {
+                        final statusColor = _statusColor(e['status']);
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppColors.bgCard,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border(left: BorderSide(color: statusColor, width: 4)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(child: Text(e['vessel_name'] ?? e['ship_name'] ?? '', style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600))),
+                                  StatusBadge(text: e['status'] ?? '', color: statusColor),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              if (e['company_name'] != null)
+                                Text(e['company_name'], style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(Icons.calendar_today, color: AppColors.textSecondary, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text('${e['planned_entry']?.toString().substring(0, 10) ?? ''} \u2192 ${e['planned_exit']?.toString().substring(0, 10) ?? ''}',
+                                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                                ],
+                              ),
+                              if (e['scope'] != null) ...[
+                                const SizedBox(height: 4),
+                                Text(e['scope'], style: const TextStyle(color: AppColors.textSecondary, fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis),
+                              ],
+                              // Progress bar
+                              const SizedBox(height: 6),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(3),
+                                child: LinearProgressIndicator(
+                                  value: _progress(e['planned_entry'], e['planned_exit']),
+                                  backgroundColor: AppColors.border,
+                                  valueColor: AlwaysStoppedAnimation(statusColor),
+                                  minHeight: 6,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 8),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
     );
   }
 
-  double _calculateProgress(String? startStr, String? endStr) {
+  double _progress(dynamic startStr, dynamic endStr) {
     try {
-      final start = DateTime.parse(startStr ?? '');
-      final end = DateTime.parse(endStr ?? '');
+      final start = DateTime.parse(startStr.toString());
+      final end = DateTime.parse(endStr.toString());
       final now = DateTime.now();
       if (now.isBefore(start)) return 0.0;
       if (now.isAfter(end)) return 1.0;
@@ -264,7 +163,17 @@ class _PlanningCard extends StatelessWidget {
       if (total <= 0) return 1.0;
       return now.difference(start).inDays / total;
     } catch (_) {
-      return 0.5;
+      return 0.0;
+    }
+  }
+
+  Color _parseColor(dynamic hex) {
+    if (hex == null) return AppColors.primary;
+    try {
+      final str = hex.toString().replaceFirst('#', '');
+      return Color(int.parse('FF$str', radix: 16));
+    } catch (_) {
+      return AppColors.primary;
     }
   }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/constants.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import '../widgets/common.dart';
 import 'projects/projects_screen.dart';
 import 'warehouse/warehouse_screen.dart';
 import 'pms/pms_screen.dart';
@@ -33,26 +35,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final user = context.watch<AuthService>().user;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0d1117),
+      backgroundColor: AppColors.bgDark,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF161b22),
+        backgroundColor: AppColors.bgCard,
         title: Row(
           children: [
             Container(
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: const Color(0xFF1a73e8),
+                color: AppColors.navyDark,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.anchor, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 10),
             const Text('WolfOperation',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold)),
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
           ],
         ),
         actions: [
@@ -62,18 +61,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           PopupMenuButton(
             icon: CircleAvatar(
-              backgroundColor: const Color(0xFF1a73e8),
+              backgroundColor: AppColors.primary,
               radius: 16,
               child: Text(
-                (user?['username'] ?? 'U')[0].toUpperCase(),
+                (user?['name'] ?? user?['username'] ?? 'U')[0].toUpperCase(),
                 style: const TextStyle(color: Colors.white, fontSize: 14),
               ),
             ),
-            color: const Color(0xFF161b22),
+            color: AppColors.bgCard,
             itemBuilder: (_) => [
               PopupMenuItem(
-                child:
-                    const Text('Logout', style: TextStyle(color: Colors.red)),
+                child: const Text('Logout', style: TextStyle(color: AppColors.danger)),
                 onTap: () => context.read<AuthService>().logout(),
               ),
             ],
@@ -83,34 +81,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       body: _screens[_selectedIndex],
       bottomNavigationBar: NavigationBar(
-        backgroundColor: const Color(0xFF161b22),
-        indicatorColor: const Color(0xFF1a73e8).withOpacity(0.2),
+        backgroundColor: AppColors.bgCard,
+        indicatorColor: AppColors.primary.withOpacity(0.2),
         selectedIndex: _selectedIndex,
         onDestinationSelected: (i) => setState(() => _selectedIndex = i),
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined, color: Colors.grey),
-            selectedIcon: Icon(Icons.dashboard, color: Color(0xFF1a73e8)),
+            icon: Icon(Icons.dashboard_outlined, color: AppColors.textSecondary),
+            selectedIcon: Icon(Icons.dashboard, color: AppColors.primary),
             label: 'Dashboard',
           ),
           NavigationDestination(
-            icon: Icon(Icons.folder_outlined, color: Colors.grey),
-            selectedIcon: Icon(Icons.folder, color: Color(0xFF1a73e8)),
+            icon: Icon(Icons.folder_outlined, color: AppColors.textSecondary),
+            selectedIcon: Icon(Icons.folder, color: AppColors.primary),
             label: 'Projects',
           ),
           NavigationDestination(
-            icon: Icon(Icons.build_outlined, color: Colors.grey),
-            selectedIcon: Icon(Icons.build, color: Color(0xFF1a73e8)),
+            icon: Icon(Icons.build_outlined, color: AppColors.textSecondary),
+            selectedIcon: Icon(Icons.build, color: AppColors.primary),
             label: 'PMS',
           ),
           NavigationDestination(
-            icon: Icon(Icons.warehouse_outlined, color: Colors.grey),
-            selectedIcon: Icon(Icons.warehouse, color: Color(0xFF1a73e8)),
+            icon: Icon(Icons.warehouse_outlined, color: AppColors.textSecondary),
+            selectedIcon: Icon(Icons.warehouse, color: AppColors.primary),
             label: 'Warehouse',
           ),
           NavigationDestination(
-            icon: Icon(Icons.menu_outlined, color: Colors.grey),
-            selectedIcon: Icon(Icons.menu, color: Color(0xFF1a73e8)),
+            icon: Icon(Icons.menu_outlined, color: AppColors.textSecondary),
+            selectedIcon: Icon(Icons.menu, color: AppColors.primary),
             label: 'More',
           ),
         ],
@@ -119,28 +117,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-class _PlaceholderScreen extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  const _PlaceholderScreen(this.title, this.icon);
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.grey, size: 64),
-          const SizedBox(height: 16),
-          Text(title, style: const TextStyle(color: Colors.grey, fontSize: 18)),
-          const SizedBox(height: 8),
-          const Text('Coming soon...',
-              style: TextStyle(color: Colors.grey, fontSize: 14)),
-        ],
-      ),
-    );
-  }
-}
+// ═══════════════════════════════════════════════
+// HOME TAB — web dashboard ile birebir
+// ═══════════════════════════════════════════════
 
 class _HomeTab extends StatefulWidget {
   const _HomeTab();
@@ -150,21 +129,21 @@ class _HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<_HomeTab> {
-  Map<String, dynamic>? _dashboardData;
+  Map<String, dynamic>? _data;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadDashboard();
+    _load();
   }
 
-  Future<void> _loadDashboard() async {
+  Future<void> _load() async {
     final token = context.read<AuthService>().token!;
     final data = await ApiService.get('/dashboard', token);
     if (mounted) {
       setState(() {
-        _dashboardData = data['data'];
+        _data = data['data'];
         _isLoading = false;
       });
     }
@@ -175,27 +154,28 @@ class _HomeTabState extends State<_HomeTab> {
     final user = context.read<AuthService>().user;
 
     return _isLoading
-        ? const Center(
-            child: CircularProgressIndicator(color: Color(0xFF1a73e8)))
+        ? const LoadingState()
         : RefreshIndicator(
-            onRefresh: _loadDashboard,
+            onRefresh: _load,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // User greeting
                   Text(
-                    'Welcome, ${user?['full_name'] ?? user?['username'] ?? 'User'}',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold),
+                    'Welcome, ${user?['name'] ?? user?['username'] ?? 'User'}',
+                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
-                  Text('Norden Shipyard ERP',
-                      style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+                  Text(
+                    user?['position'] ?? 'Norden Shipyard ERP',
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                  ),
                   const SizedBox(height: 24),
+
+                  // HR Stats — web'deki 5'li grid
                   GridView.count(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -204,135 +184,92 @@ class _HomeTabState extends State<_HomeTab> {
                     mainAxisSpacing: 12,
                     childAspectRatio: 1.5,
                     children: [
-                      _StatCard(
+                      StatCard(
                         title: 'Active Projects',
-                        value: '${_dashboardData?['active_projects'] ?? 0}',
+                        value: '${_data?['active_projects'] ?? 0}',
                         icon: Icons.folder_open,
-                        color: const Color(0xFF1a73e8),
+                        color: AppColors.msBlue,
                       ),
-                      _StatCard(
+                      StatCard(
                         title: 'PMS Overdue',
-                        value: '${_dashboardData?['overdue_pms'] ?? 0}',
+                        value: '${_data?['overdue_pms'] ?? 0}',
                         icon: Icons.build_circle,
-                        color: Colors.red,
+                        color: AppColors.msRed,
                       ),
-                      _StatCard(
+                      StatCard(
                         title: 'Pending NCR',
-                        value: '${_dashboardData?['pending_ncr'] ?? 0}',
+                        value: '${_data?['pending_ncr'] ?? 0}',
                         icon: Icons.warning_amber,
-                        color: Colors.orange,
+                        color: AppColors.msOrange,
                       ),
-                      _StatCard(
+                      StatCard(
                         title: 'Pending Invoices',
-                        value: '${_dashboardData?['pending_invoices'] ?? 0}',
+                        value: '${_data?['pending_invoices'] ?? 0}',
                         icon: Icons.receipt_long,
-                        color: Colors.green,
+                        color: AppColors.msPurple,
                       ),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const Text('Quick Actions',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
+
+                  // Quick Actions — web'deki module links
+                  const SectionHeader(title: 'Quick Actions'),
                   GridView.count(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 3,
+                    crossAxisCount: 4,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
                     children: [
-                      _QuickAction(
-                          icon: Icons.folder,
-                          label: 'Projects',
-                          color: const Color(0xFF1a73e8),
+                      _QuickAction(icon: Icons.folder, label: 'Projects', color: AppColors.msBlue,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProjectsScreen()))),
-                      _QuickAction(
-                          icon: Icons.people,
-                          label: 'Employees',
-                          color: Colors.purple,
+                      _QuickAction(icon: Icons.people, label: 'Employees', color: AppColors.msPurple,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EmployeesScreen()))),
-                      _QuickAction(
-                          icon: Icons.warehouse,
-                          label: 'Warehouse',
-                          color: Colors.teal,
+                      _QuickAction(icon: Icons.warehouse, label: 'Warehouse', color: AppColors.msTeal,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarehouseScreen()))),
-                      _QuickAction(
-                          icon: Icons.build,
-                          label: 'PMS',
-                          color: Colors.orange,
+                      _QuickAction(icon: Icons.build, label: 'PMS', color: AppColors.msOrange,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PmsScreen()))),
-                      _QuickAction(
-                          icon: Icons.shield,
-                          label: 'Safety',
-                          color: Colors.red,
+                      _QuickAction(icon: Icons.shield, label: 'Safety', color: AppColors.msRed,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SafetyScreen()))),
-                      _QuickAction(
-                          icon: Icons.receipt,
-                          label: 'NCR',
-                          color: Colors.green,
+                      _QuickAction(icon: Icons.report_problem, label: 'NCR', color: AppColors.danger,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NcrScreen()))),
+                      _QuickAction(icon: Icons.directions_boat, label: 'Ships', color: AppColors.msTeal,
+                          onTap: () {}),
+                      _QuickAction(icon: Icons.attach_money, label: 'Financial', color: AppColors.msGreen,
+                          onTap: () {}),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const Text('Recent Activity',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  if (_dashboardData?['recent_activities'] != null)
-                    ...(_dashboardData!['recent_activities'] as List)
-                        .map((a) => _ActivityItem(activity: a)),
+
+                  // Low stock alert
+                  if (toInt(_data?['low_stock_alerts']) > 0) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.msOrange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.msOrange.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.inventory, color: AppColors.msOrange, size: 20),
+                          const SizedBox(width: 10),
+                          Text('${_data?['low_stock_alerts']} low stock items',
+                              style: const TextStyle(color: AppColors.msOrange, fontSize: 13, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // Recent Activity
+                  const SectionHeader(title: 'Recent Activity'),
+                  if (_data?['recent_activities'] != null)
+                    ...(_data!['recent_activities'] as List).map((a) => _ActivityItem(activity: a)),
                 ],
               ),
             ),
           );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF161b22),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Icon(icon, color: color, size: 28),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(value,
-                  style: TextStyle(
-                      color: color, fontSize: 24, fontWeight: FontWeight.bold)),
-              Text(title,
-                  style: const TextStyle(color: Colors.grey, fontSize: 11)),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -342,12 +279,7 @@ class _QuickAction extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const _QuickAction({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
+  const _QuickAction({required this.icon, required this.label, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -355,17 +287,24 @@ class _QuickAction extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF161b22),
+          color: AppColors.bgCard,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: AppColors.border.withOpacity(0.5)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 28),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
             const SizedBox(height: 6),
-            Text(label,
-                style: const TextStyle(color: Colors.white, fontSize: 11)),
+            Text(label, style: const TextStyle(color: AppColors.textPrimary, fontSize: 11), textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -383,28 +322,65 @@ class _ActivityItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF161b22),
+        color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
+            margin: const EdgeInsets.only(top: 5),
             width: 8,
             height: 8,
-            decoration: const BoxDecoration(
-              color: Color(0xFF1a73e8),
-              shape: BoxShape.circle,
-            ),
+            decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(activity['description'] ?? '',
-                style: const TextStyle(color: Colors.white70, fontSize: 13)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (activity['project_code'] != null)
+                  Text('[${activity['project_code']}] ${activity['project_title'] ?? ''}',
+                      style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+                Text(
+                  activity['note_text'] ?? activity['description'] ?? '',
+                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    if (activity['author_name'] != null)
+                      Text(activity['author_name'], style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                    if (activity['note_type'] != null) ...[
+                      const SizedBox(width: 8),
+                      StatusBadge(text: activity['note_type'], color: AppColors.primary),
+                    ],
+                  ],
+                ),
+              ],
+            ),
           ),
-          Text(activity['time'] ?? '',
-              style: const TextStyle(color: Colors.grey, fontSize: 11)),
+          if (activity['created_at'] != null)
+            Text(_formatTime(activity['created_at']),
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
         ],
       ),
     );
+  }
+
+  String _formatTime(String? dt) {
+    if (dt == null) return '';
+    try {
+      final d = DateTime.parse(dt);
+      final diff = DateTime.now().difference(d);
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      if (diff.inDays < 7) return '${diff.inDays}d ago';
+      return '${d.day}/${d.month}';
+    } catch (_) {
+      return dt.length > 10 ? dt.substring(0, 10) : dt;
+    }
   }
 }
