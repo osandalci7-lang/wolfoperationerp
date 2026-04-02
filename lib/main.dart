@@ -4,6 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'services/auth_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/employees/employees_screen.dart';
+import 'screens/safety/safety_screen.dart';
+import 'screens/ncr/ncr_screen.dart';
+import 'screens/vendors/vendors_screen.dart';
+import 'screens/planning/planning_screen.dart';
+import 'screens/certificates/certificates_screen.dart';
+import 'screens/financial/financial_screen.dart';
+import 'screens/more/more_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,8 +41,14 @@ class WolfOperationApp extends StatelessWidget {
       },
       routes: [
         GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-        GoRoute(
-            path: '/dashboard', builder: (_, __) => const DashboardScreen()),
+        GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
+        GoRoute(path: '/employees', builder: (_, __) => const EmployeesScreen()),
+        GoRoute(path: '/safety', builder: (_, __) => const SafetyScreen()),
+        GoRoute(path: '/ncr', builder: (_, __) => const NcrScreen()),
+        GoRoute(path: '/vendors', builder: (_, __) => const VendorsScreen()),
+        GoRoute(path: '/planning', builder: (_, __) => const PlanningScreen()),
+        GoRoute(path: '/certificates', builder: (_, __) => const CertificatesScreen()),
+        GoRoute(path: '/financial', builder: (_, __) => const FinancialScreen()),
       ],
     );
 

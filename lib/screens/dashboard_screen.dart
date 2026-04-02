@@ -5,6 +5,10 @@ import '../services/api_service.dart';
 import 'projects/projects_screen.dart';
 import 'warehouse/warehouse_screen.dart';
 import 'pms/pms_screen.dart';
+import 'more/more_screen.dart';
+import 'employees/employees_screen.dart';
+import 'safety/safety_screen.dart';
+import 'ncr/ncr_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -21,7 +25,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ProjectsScreen(),
     PmsScreen(),
     WarehouseScreen(),
-    _PlaceholderScreen('More', Icons.menu),
+    MoreScreen(),
   ];
 
   @override
@@ -244,32 +248,32 @@ class _HomeTabState extends State<_HomeTab> {
                           icon: Icons.folder,
                           label: 'Projects',
                           color: const Color(0xFF1a73e8),
-                          onTap: () {}),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProjectsScreen()))),
                       _QuickAction(
                           icon: Icons.people,
                           label: 'Employees',
                           color: Colors.purple,
-                          onTap: () {}),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EmployeesScreen()))),
                       _QuickAction(
                           icon: Icons.warehouse,
                           label: 'Warehouse',
                           color: Colors.teal,
-                          onTap: () {}),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WarehouseScreen()))),
                       _QuickAction(
                           icon: Icons.build,
                           label: 'PMS',
                           color: Colors.orange,
-                          onTap: () {}),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PmsScreen()))),
                       _QuickAction(
                           icon: Icons.shield,
                           label: 'Safety',
                           color: Colors.red,
-                          onTap: () {}),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SafetyScreen()))),
                       _QuickAction(
                           icon: Icons.receipt,
-                          label: 'Invoices',
+                          label: 'NCR',
                           color: Colors.green,
-                          onTap: () {}),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NcrScreen()))),
                     ],
                   ),
                   const SizedBox(height: 24),
