@@ -631,7 +631,7 @@ class _InfoGrid extends StatelessWidget {
             Text(item.value ?? '-', style: const TextStyle(color: _textPrimary, fontSize: 13)),
           ],
         ),
-      )),
+      )).toList(),
     );
   }
 }
