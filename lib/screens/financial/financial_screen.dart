@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants.dart';
 import '../../services/auth_service.dart';
 import '../../services/api_service.dart';
+import '../../core/constants.dart';
 import '../../widgets/common.dart';
 
 class FinancialScreen extends StatefulWidget {
   const FinancialScreen({super.key});
-
   @override
   State<FinancialScreen> createState() => _FinancialScreenState();
 }
@@ -18,53 +17,38 @@ class _FinancialScreenState extends State<FinancialScreen> {
   bool _isLoading = true;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
+  void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
     final token = context.read<AuthService>().token!;
-    final results = await Future.wait([
-      ApiService.get('/financial/summary', token),
-      ApiService.get('/invoices', token),
-    ]);
-    if (mounted) {
-      setState(() {
-        _summary = results[0]['data'];
-        _invoices = results[1]['data'] ?? [];
-        _isLoading = false;
-      });
-    }
+    final summary = await ApiService.get('/financial/summary', token);
+    final invoices = await ApiService.get('/invoices', token);
+    if (mounted) setState(() {
+      _summary = summary['data'];
+      _invoices = invoices['data'] ?? [];
+      _isLoading = false;
+    });
   }
 
-  String _fmtCurrency(dynamic value) {
-    final v = toDouble(value);
-    if (v.abs() >= 1000000) return '\u20AC${(v / 1000000).toStringAsFixed(1)}M';
-    if (v.abs() >= 1000) return '\u20AC${(v / 1000).toStringAsFixed(1)}K';
-    return '\u20AC${v.toStringAsFixed(0)}';
+  String _fmtCurrency(dynamic v) {
+    final d = toDouble(v);
+    return '\u20AC${d.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}';
   }
 
-  Color _invoiceStatusColor(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'paid':
-        return AppColors.msGreen;
-      case 'pending':
-      case 'received':
-        return AppColors.msOrange;
-      case 'draft':
-        return AppColors.textSecondary;
-      default:
-        return AppColors.msRed;
+  Color _statusColor(String? s) {
+    switch (s?.toLowerCase()) {
+      case 'paid': return AppColors.success;
+      case 'pending': return AppColors.warning;
+      case 'overdue': return AppColors.danger;
+      default: return AppColors.textSecondary;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final revenue = toDouble(_summary?['revenue']);
-    final cost = toDouble(_summary?['cost']);
-    final profit = toDouble(_summary?['profit']);
-
+    final revenue = toDouble(_summary?['total_revenue']);
+    final cost = toDouble(_summary?['total_cost']);
+    final profit = revenue - cost;
     return Scaffold(
       backgroundColor: AppColors.bgDark,
       appBar: wolfAppBar(title: 'Financial', showBack: true),
@@ -75,67 +59,81 @@ class _FinancialScreenState extends State<FinancialScreen> {
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
-                child: Column(children: [
-                  // KPI Cards — web'deki 4'lü grid
-                  GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 1.6,
-                    children: [
-                      _KpiCard(label: 'TOTAL REVENUE', value: _fmtCurrency(revenue), color: AppColors.msBlue),
-                      _KpiCard(label: 'TOTAL COST', value: _fmtCurrency(cost), color: AppColors.msRed),
-                      _KpiCard(label: 'NET PROFIT', value: _fmtCurrency(profit), color: profit >= 0 ? AppColors.msGreen : AppColors.msRed),
-                      _KpiCard(label: 'PENDING INVOICES', value: _fmtCurrency(_summary?['pending_invoice_amount']), color: AppColors.msOrange),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Month info
-                  if (_summary?['month'] != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Text('Period: ${_summary!['month']}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 1.6,
+                      children: [
+                        _KpiCard(label: 'TOTAL REVENUE', value: _fmtCurrency(revenue), color: AppColors.primary),
+                        _KpiCard(label: 'TOTAL COST', value: _fmtCurrency(cost), color: AppColors.danger),
+                        _KpiCard(label: 'NET PROFIT', value: _fmtCurrency(profit), color: profit >= 0 ? AppColors.success : AppColors.danger),
+                        _KpiCard(label: 'PENDING', value: _fmtCurrency(_summary?['pending_invoice_amount']), color: AppColors.warning),
+                      ],
                     ),
-
-                  // Recent Invoices
-                  const SectionHeader(title: 'Recent Invoices'),
-                  if (_invoices.isEmpty)
-                    const EmptyState(icon: Icons.receipt_long, message: 'No invoices')
-                  else
-                    ..._invoices.take(20).map((inv) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(color: AppColors.bgCard, borderRadius: BorderRadius.circular(10)),
-                      child: Row(
-                        children: [
-                          Icon(Icons.receipt, color: _invoiceStatusColor(inv['status']), size: 24),
-                          const SizedBox(width: 12),
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(inv['invoice_number'] ?? inv['title'] ?? '#${inv['id']}',
-                                style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
-                            Text(inv['vendor_name'] ?? '', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                          ])),
-                          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                            Text('\u20AC${toDouble(inv['amount'] ?? inv['total']).toStringAsFixed(2)}',
-                                style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
-                            // Web'deki invoice status badge
-                            Container(
-                              margin: const EdgeInsets.only(top: 2),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: _invoiceStatusColor(inv['status']).withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(10),
+                    const SizedBox(height: 24),
+                    const SectionHeader(title: 'Recent Invoices'),
+                    const SizedBox(height: 12),
+                    if (_invoices.isEmpty)
+                      const EmptyState(icon: Icons.receipt_long, message: 'No invoices')
+                    else
+                      ..._invoices.take(20).map((inv) => Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.bgCard,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.receipt, color: _statusColor(inv['status']), size: 24),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    inv['invoice_number'] ?? '#${inv['id']}',
+                                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+                                  ),
+                                  Text(
+                                    inv['vendor_name'] ?? inv['customer_name'] ?? '',
+                                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                                  ),
+                                ],
                               ),
-                              child: Text(inv['status'] ?? '', style: TextStyle(color: _invoiceStatusColor(inv['status']), fontSize: 10, fontWeight: FontWeight.w600)),
                             ),
-                          ]),
-                        ],
-                      ),
-                    )),
-                ],
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  _fmtCurrency(inv['amount'] ?? inv['total_amount']),
+                                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+                                ),
+                                Container(
+                                  margin: const EdgeInsets.only(top: 2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: _statusColor(inv['status']).withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    inv['status'] ?? '',
+                                    style: TextStyle(color: _statusColor(inv['status']), fontSize: 10, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      )),
+                  ],
+                ),
               ),
             ),
     );
