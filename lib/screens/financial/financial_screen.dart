@@ -75,7 +75,7 @@ class _FinancialScreenState extends State<FinancialScreen> {
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
-                children: [
+                child: Column(children: [
                   // KPI Cards — web'deki 4'lü grid
                   GridView.count(
                     shrinkWrap: true,
