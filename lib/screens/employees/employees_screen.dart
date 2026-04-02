@@ -621,7 +621,7 @@ class _InfoGrid extends StatelessWidget {
     return Wrap(
       spacing: 24,
       runSpacing: 12,
-      children: items.map((item) => SizedBox(
+      children: items.map<Widget>((item) => SizedBox(
         width: (MediaQuery.of(context).size.width - 80) / 2,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
