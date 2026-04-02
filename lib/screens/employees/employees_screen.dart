@@ -178,9 +178,8 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                             builder: (_) => EmployeeDetailScreen(employeeId: emp['id'], employeeName: name),
                           )),
                           child: Container(
-                            color: _bgWhite,
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: _border, width: 0.5))),
+                            decoration: const BoxDecoration(color: _bgWhite, border: Border(bottom: BorderSide(color: _border, width: 0.5))),
                             child: Row(
                               children: [
                                 // Photo / Avatar
